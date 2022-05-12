@@ -1,0 +1,30 @@
+{
+  "dependencies": {
+    "@emotion/react": "latest",
+    "@emotion/styled": "latest",
+    "@mui/icons-material": "latest",
+    "@mui/material": "latest",
+    "@testing-library/jest-dom": "5.16.4",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "lodash": "4.17.21",
+    "react": "latest",
+    "react-dom": "latest",
+    "typescript": "latest"
+  },
+  "description": "https://github.com/mui/material-ui/blob/v5.6.2/docs/data/material/components/dialogs/SimpleDialog.tsx",
+  "devDependencies": {
+    "react-scripts": "latest"
+  },
+  "main": "index.tsx",
+  "name": "compare-datasets",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "title": "SimpleDialog Material Demo",
+  "keywords": [],
+  "version": "0.0.170"
+}
