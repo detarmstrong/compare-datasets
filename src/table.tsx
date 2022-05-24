@@ -90,7 +90,7 @@ export default function DataTable() {
 
   return (
     <Paper sx={{ width: "100%" }}>
-      <TableContainer sx={{ maxHeight: 840 }}>
+      <TableContainer sx={{ height: "75vh" }}>
         <Table stickyHeader aria-label="sticky table">
           <TableHead>
             <TableRow>
@@ -179,6 +179,7 @@ export default function DataTable() {
           </TableBody>
         </Table>
       </TableContainer>
+      {/*
       <TablePagination
         rowsPerPageOptions={[25, 100, 300]}
         component="div"
@@ -188,6 +189,7 @@ export default function DataTable() {
         onPageChange={handleChangePage}
         onRowsPerPageChange={handleChangeRowsPerPage}
       />
+            */}
     </Paper>
   );
 }

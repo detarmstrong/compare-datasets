@@ -10,9 +10,10 @@
     "lodash": "4.17.21",
     "react": "latest",
     "react-dom": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "sql.js-httpvfs": "0.8.11"
   },
-  "description": "https://github.com/mui/material-ui/blob/v5.6.2/docs/data/material/components/dialogs/SimpleDialog.tsx",
+  "description": "Compare CSV datasets for discrepanices. Make joins easy.",
   "devDependencies": {
     "react-scripts": "latest"
   },
@@ -22,6 +23,6 @@
     "start": "react-scripts start",
     "test": "react-scripts test"
   },
-  "title": "SimpleDialog Material Demo",
+  "title": "Compare Datasets",
   "keywords": []
 }

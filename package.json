@@ -7,9 +7,12 @@
     "@testing-library/jest-dom": "5.16.4",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "d3-dsv": "3.0.1",
     "lodash": "4.17.21",
     "react": "latest",
     "react-dom": "latest",
+    "react-drag-drop-files": "2.3.5",
+    "sql.js-httpvfs": "0.8.11",
     "typescript": "latest"
   },
   "description": "https://github.com/mui/material-ui/blob/v5.6.2/docs/data/material/components/dialogs/SimpleDialog.tsx",

@@ -1,6 +1,5 @@
 import * as React from "react";
 import Button from "@mui/material/Button";
-import ButtonGroup from "@mui/material/ButtonGroup";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
@@ -11,29 +10,44 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TablePagination from "@mui/material/TablePagination";
-import TableRow from "@mui/material/TableRow";
+import DataTable from "./table";
+import DragAndDropForm from "./drag-and-drop-form";
+import VennFilterButtons from "./venn-filter-buttons";
 
 import _ from "lodash";
-import { Avatar, Tooltip } from "@mui/material";
-import { ReactComponent as JustA } from "./images/just-a.svg";
-import { ReactComponent as AMinusB } from "./images/a-minus-b.svg";
-import { ReactComponent as AIntersectionB } from "./images/a-intersection-b.svg";
-import { ReactComponent as BMinusA } from "./images/b-minus-a.svg";
-import { ReactComponent as JustB } from "./images/just-b.svg";
+import { csvParse, autoType } from "d3-dsv";
+
+import { createDbWorker } from "sql.js-httpvfs";
+const workerUrl = "/sqlite.worker.js";
+const wasmUrl = "/sql-wasm.wasm";
+
+async function loadDb() {
+  console.log("start load");
+  const worker = await createDbWorker(
+    [
+      {
+        from: "inline",
+        config: {
+          serverMode: "full",
+          url: "/example.sqlite3",
+          requestChunkSize: 4096
+        }
+      }
+    ],
+    workerUrl,
+    wasmUrl
+  );
+  const result = await worker.db.query(`select * from mytable`);
+  console.log("result", result);
+  console.log("before awaitworkerdb");
+  return worker;
+}
 
 const table_descriptions = [
   {
@@ -181,6 +195,17 @@ export default function App() {
   const [open, setOpen] = React.useState(true);
   const [keys, setKeys] = React.useState({});
   const [filter, setFilter] = React.useState<Filter>("a-intersection-b");
+  const [columns, setColumns] = React.useState([]);
+  const [sqlWorker, setSqlWorker] = React.useState();
+
+  React.useEffect(() => {
+    async function doSelect() {
+      const worker = await loadDb();
+      setSqlWorker(worker);
+      return await worker.db.query(`select * from mytable`);
+    }
+    doSelect();
+  }, []); // NOTE empty array will cause this to only update on init
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -263,135 +288,103 @@ export default function App() {
     setFilter(newValue);
   };
 
+  const loadCsv = (name, csvText) => {
+    // parse csv
+    let theSheet = csvParse(csvText, autoType);
+    let columns = theSheet.columns;
+
+    // generate unique table name
+    let tableName = name;
+    let columnsDDL = _.map(columns, (col) => `${col} varchar`);
+
+    // create table
+    let ddl = `create table ${tableName} (${columnsDDL.join()})`;
+    console.log("ddl", ddl);
+    async function runSql() {
+      await sqlWorker.db.run(ddl);
+
+      // insert data
+      _.each(theSheet, (row) => {
+        let stmt = sqlWorker.db
+          .prepare(`insert into ${tableName} (${columns.join()}) 
+                             values (${Array(columns.length)
+                               .fill("?")
+                               .join()})`);
+        stmt.bind(_.valuesIn(row));
+        stmt.step();
+      });
+    }
+    runSql();
+    console.log({ tableName, columns });
+    return { tableName, columns };
+  };
+
+  if (columns.length !== 2) {
+    return <DragAndDropForm loadCsv={loadCsv} setColumns={setColumns} />;
+  }
+
+  // else
   return (
-    <Paper
-      sx={{
-        p: 2,
-        margin: "auto",
-        maxWidth: 1280,
-        flexGrow: 1,
-        backgroundColor: (theme) =>
-          theme.palette.mode === "dark" ? "#1A2027" : "#fff"
-      }}
-    >
-      <Grid container spacing={2}>
-        <Grid item xs={3}>
-          <Typography gutterBottom variant="subtitle1" component="div">
-            <strong>{"{A}"}</strong> {_.get(keys, "0.table", "Select keys")}
-          </Typography>
-          <Typography variant="body2" gutterBottom>
-            <Button
-              variant="outlined"
-              startIcon={<VpnKey />}
-              onClick={handleClickOpen}
-            >
-              {_.get(keys, "0.colName", "Select key")}
-            </Button>
-          </Typography>
+    <>
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          margin: "auto",
+          maxWidth: 1280,
+          flexGrow: 1,
+          backgroundColor: (theme) =>
+            theme.palette.mode === "dark" ? "#1A2027" : "#fff"
+        }}
+      >
+        <Grid container spacing={2}>
+          <Grid item xs={3}>
+            <Typography gutterBottom variant="subtitle1" component="div">
+              <strong>{"{A}"}</strong> {_.get(keys, "0.table", "Select keys")}
+            </Typography>
+            <Typography variant="body2" gutterBottom>
+              <Button
+                variant="outlined"
+                startIcon={<VpnKey />}
+                onClick={handleClickOpen}
+              >
+                {_.get(keys, "0.colName", "Select key")}
+              </Button>
+            </Typography>
+          </Grid>
+
+          <Grid item xs={6}>
+            <VennFilterButtons
+              handleFilterChange={handleFilterChange}
+              filter={filter}
+            />
+          </Grid>
+
+          <Grid item xs={3}>
+            <Typography gutterBottom variant="subtitle1" component="div">
+              <strong>{"{B}"}</strong> {_.get(keys, "1.table", "Select keys")}
+            </Typography>
+            <Typography variant="body2" gutterBottom>
+              <Button
+                variant="outlined"
+                startIcon={<VpnKey />}
+                onClick={handleClickOpen}
+              >
+                {_.get(keys, "1.colName", "Select key")}
+              </Button>
+            </Typography>
+          </Grid>
         </Grid>
 
-        <Grid item xs={6}>
-          <ToggleButtonGroup
-            onChange={handleFilterChange}
-            exclusive
-            size="small"
-            color="primary"
-            fullWidth={true}
-            sx={{ height: 56 }}
-          >
-            <ToggleButton value="just-a" sx={{ border: 0 }}>
-              <JustA width="95%" />
-            </ToggleButton>
-            <ToggleButton value="a-minus-b" sx={{ border: 0 }}>
-              <AMinusB width="95%" />
-            </ToggleButton>
-            <ToggleButton value="a-intersection-b" sx={{ border: 0 }}>
-              <AIntersectionB width="95%" />
-            </ToggleButton>
-            <ToggleButton value="b-minus-a" sx={{ border: 0 }}>
-              <BMinusA width="95%" />
-            </ToggleButton>
-            <ToggleButton value="just-b" sx={{ border: 0 }}>
-              <JustB width="95%" />
-            </ToggleButton>
-          </ToggleButtonGroup>
-          <ToggleButtonGroup
-            value={filter}
-            onChange={handleFilterChange}
-            exclusive
-            size="small"
-            color="primary"
-            fullWidth={true}
-          >
-            <ToggleButton value="just-a">
-              <Tooltip arrow title={"Just show table A by itself"}>
-                <span>Just A</span>
-              </Tooltip>
-            </ToggleButton>
+        <KeySelection
+          keys={keys}
+          open={open}
+          handleOk_={handleOk}
+          handleCancel_={handleCancel}
+        />
+      </Paper>
 
-            <ToggleButton value="a-minus-b">
-              <Tooltip
-                arrow
-                title={
-                  "Show table A, subtracting rows that match by key in table B"
-                }
-              >
-                <span>A - B</span>
-              </Tooltip>
-            </ToggleButton>
-
-            <ToggleButton value="a-intersection-b">
-              <Tooltip
-                arrow
-                title={
-                  "Show only rows that match by key across tables A and B, the intersection."
-                }
-              >
-                <span>A ∩ B</span>
-              </Tooltip>
-            </ToggleButton>
-
-            <ToggleButton value="b-minus-a">
-              <Tooltip
-                arrow
-                title={
-                  "Show table B, subtracting rows that match by key in table A"
-                }
-              >
-                <span>B - A</span>
-              </Tooltip>
-            </ToggleButton>
-
-            <ToggleButton value="just-b">
-              <Tooltip arrow title={"Just show table B by itself"}>
-                <span>Just B</span>
-              </Tooltip>
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </Grid>
-
-        <Grid item xs={3}>
-          <Typography gutterBottom variant="subtitle1" component="div">
-            <strong>{"{B}"}</strong> {_.get(keys, "1.table", "Select keys")}
-          </Typography>
-          <Typography variant="body2" gutterBottom>
-            <Button
-              variant="outlined"
-              startIcon={<VpnKey />}
-              onClick={handleClickOpen}
-            >
-              {_.get(keys, "1.colName", "Select key")}
-            </Button>
-          </Typography>
-        </Grid>
-      </Grid>
-
-      <KeySelection
-        keys={keys}
-        open={open}
-        handleOk_={handleOk}
-        handleCancel_={handleCancel}
-      />
-    </Paper>
+      <DataTable />
+    </>
   );
 }
