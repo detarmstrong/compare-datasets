@@ -12,11 +12,15 @@
     "react": "latest",
     "react-dom": "latest",
     "react-drag-drop-files": "2.3.5",
-    "sql.js-httpvfs": "0.8.11",
-    "typescript": "latest"
+    "sass": "^1.52.1",
+    "typescript": "latest",
+    "wa-sqlite": "rhashimoto/wa-sqlite#buildless"
   },
   "description": "https://github.com/mui/material-ui/blob/v5.6.2/docs/data/material/components/dialogs/SimpleDialog.tsx",
   "devDependencies": {
+    "@types/d3-dsv": "^3.0.0",
+    "@types/lodash": "^4.14.182",
+    "prettier": "2.6.2",
     "react-scripts": "latest"
   },
   "main": "index.tsx",
@@ -27,7 +31,25 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
-  "title": "SimpleDialog Material Demo",
+  "title": "Compare Datasets",
   "keywords": [],
-  "version": "0.0.170"
+  "version": "0.0.170",
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "prettier": {
+    "trailingComma": "es5",
+    "tabWidth": 2,
+    "semi": false,
+    "singleQuote": true
+  }
 }

@@ -1,15 +1,17 @@
 import React from "react";
-import { ReactComponent as JustA } from "./images/just-a.svg";
-import { ReactComponent as AMinusB } from "./images/a-minus-b.svg";
-import { ReactComponent as AIntersectionB } from "./images/a-intersection-b.svg";
-import { ReactComponent as BMinusA } from "./images/b-minus-a.svg";
-import { ReactComponent as JustB } from "./images/just-b.svg";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import { Tooltip } from "@mui/material";
 import "./styles.scss";
+import { Filter } from "./types";
 
-function VennFilterButtons(props) {
+interface VennFilterButtonsProps {
+  handleFilterChange: (e: React.MouseEvent<HTMLElement>,
+    newValue: Filter) => void,
+  filter: string
+}
+
+function VennFilterButtons(props: VennFilterButtonsProps) {
   return (
     <>
       <ToggleButtonGroup
@@ -21,19 +23,19 @@ function VennFilterButtons(props) {
         sx={{ height: 56 }}
       >
         <ToggleButton value="just-a" sx={{ border: 0 }}>
-          <JustA width="95%" height="40" />
+          <img src={process.env.PUBLIC_URL + '/svg/just-a.svg'} width="95%" height="40" />
         </ToggleButton>
         <ToggleButton value="a-minus-b" sx={{ border: 0 }}>
-          <AMinusB width="95%" height="40" />
+          <img src={process.env.PUBLIC_URL + '/svg/a-minus-b.svg'} width="95%" height="40" />
         </ToggleButton>
         <ToggleButton value="a-intersection-b" sx={{ border: 0 }}>
-          <AIntersectionB width="95%" height="40" />
+          <img src={process.env.PUBLIC_URL + '/svg/a-intersection-b.svg'} width="95%" height="40" />
         </ToggleButton>
         <ToggleButton value="b-minus-a" sx={{ border: 0 }}>
-          <BMinusA width="95%" height="40" />
+          <img src={process.env.PUBLIC_URL + '/svg/b-minus-a.svg'} width="95%" height="40" />
         </ToggleButton>
         <ToggleButton value="just-b" sx={{ border: 0 }}>
-          <JustB width="95%" height="40" />
+          <img src={process.env.PUBLIC_URL + '/svg/just-b.svg'} width="95%" height="40" />
         </ToggleButton>
       </ToggleButtonGroup>
       <ToggleButtonGroup
