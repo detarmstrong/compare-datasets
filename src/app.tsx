@@ -15,113 +15,113 @@ import { csvParse, autoType } from 'd3-dsv'
 import SQLiteESMFactory from 'wa-sqlite/dist/wa-sqlite.mjs'
 import * as SQLite from 'wa-sqlite'
 
-import { Filter } from './types'
+import { Filter, KeyDesc, KeyDescArray } from './types'
 import { KeySelection } from './KeySelection'
 
-async function initDb() {
-  const module = await SQLiteESMFactory()
-  const sqlite3 = SQLite.Factory(module)
-  ;(window as any).sqlite3 = sqlite3
-  const db = await sqlite3.open_v2('innerjoy')
-  return db
-}
-
 export default function App() {
-  interface KeyDesc {
-    table: string
-    colName: string
-  }
-
   const [open, setOpen] = React.useState(true)
-  const [keys, setKeys] = React.useState([] as KeyDesc[])
+  const [keys, setKeys] = React.useState([[], []] as KeyDescArray)
   const [filter, setFilter] = React.useState<Filter>('a-intersection-b')
   const [columns, setColumns] = React.useState([] as string[][])
   const [reportColumns, setReportColumns] = React.useState([] as string[])
-  const [reportData, setReportData] = React.useState([] as any[][])
+  const [reportData, setReportData] = React.useState([] as {}[])
   const [tableNames, setTableNames] = React.useState([] as string[])
   const [db, setDb] = React.useState(0)
 
   React.useEffect(() => {
-    async function doSelect() {
-      const db = await initDb()
-      console.log(db)
+    async function initDb() {
+      const module = await SQLiteESMFactory()
+      const sqlite3 = SQLite.Factory(module)
+      ;(window as any).sqlite3 = sqlite3
+      const db = await sqlite3.open_v2('innerjoy')
       setDb(db)
-      return await (window as any).sqlite3.exec(db, `SELECT 'Hello, world!'`)
     }
-    console.log(
-      'Doselect',
-      doSelect().then((res) => console.log('res', res))
-    )
+    initDb()
   }, []) // NOTE empty array will cause this to only update on init
 
   const handleClickOpen = () => {
     setOpen(true)
   }
 
-  const execQuery = async (sql: string) => {
+  const execQuery = async (
+    sql: string
+  ): Promise<{ results: {}[]; columns: string[] }> => {
     const sqlite3 = (window as any).sqlite3
     let results = []
     let columnsTemp = [] // use array here and push to it instead of just setting the variable
     // because trying to set this variable
-    // here won't work - it's silently ignored. I don't understand the mechanics of this yet.
+    // in the for await block scope won't work - it's silently ignored. I don't understand the mechanics of this yet.
     for await (let stmt of sqlite3.statements(db, sql)) {
       let rows = []
       let columns = sqlite3.column_names(stmt)
 
-      //console.log('columns in for await', columns)
       while ((await sqlite3.step(stmt)) === SQLite.SQLITE_ROW) {
         let row = sqlite3.row(stmt)
-        rows.push(row)
+        let rowObj: any = { id: rows.length }
+        let itemCounter = 0
+        for (const rowValue of row) {
+          rowObj[columns[itemCounter]] = rowValue
+          itemCounter++
+        }
+        rows.push(rowObj)
       }
       if (columns.length) {
         results.push(rows)
         columnsTemp.push(columns)
       }
     }
-    await sqlite3.close(db)
     return { results: results[0], columns: columnsTemp[0] }
   }
 
-  const handleOk = (keys: []) => {
+  const handleOk = (keys: KeyDescArray) => {
     console.log('handleOk', keys, 'filter', filter)
     setKeys(keys)
     setOpen(false)
-    // set some loading modal
-    // refresh table data and render it per the key and filter selections
+
     const sql = reportSql(keys, filter)
-    console.log(sql)
-    /*
-    let reportColumns: string[] = [];
-    (window as any).sqlite3.exec(db, sql, function(row: [], cols: []) {
-      let colsWereSet = false;
-      if(!colsWereSet){
-        setReportColumns(cols);
-        colsWereSet = true;
-      }
-      console.log("row", row, cols);
-    });
-    */
-    let results = execQuery(sql).then((res) => {
-      console.log(res.results)
+    execQuery(sql).then((res) => {
       setReportData(res.results)
       setReportColumns(res.columns)
     })
-
-    console.log('reportData', reportData)
-    // setReportData(execQuery(sql))
-
-    console.log('handle ok end')
-
-    // or useEffect instead?
   }
 
   const handleCancel = () => {
     setOpen(false)
   }
 
-  const reportSql = (keySelection: KeyDesc[], filter: Filter) => {
-    let set = (setName: string): KeyDesc => {
-      return keySelection[setName === 'a' ? 0 : 1]
+  const reportSql = (keySelection: KeyDescArray, filter: Filter) => {
+    let set = (setName: string) => {
+      return {
+        getKeyCols: (): KeyDesc[] => keySelection[setName === 'a' ? 0 : 1],
+        getTable: function (): string {
+          return this.getKeyCols()[0].table
+        },
+        getKeyList: function (): string {
+          return this.getKeyCols()
+            .map((e, i) => `"${e.colName}" as key${i}`)
+            .join(',')
+        },
+        getKeyAliasList: function (): string {
+          return this.getKeyCols()
+            .map((e, i) => `key${i}`)
+            .join(',')
+        },
+        getLeftJoinPredicates: function (): string {
+          return this.getKeyCols()
+            .map((e, i) => {
+              return `"${this.getTable()}"."${e.colName}" = unionish.key${i}`
+            })
+            .join(' AND ')
+        },
+        getSelectList: function (): string {
+          let tableName = this.getTable()
+          let tmpIdx = _.indexOf(tableNames, tableName)
+          let tableColumns = columns[tmpIdx]
+          return _.map(tableColumns, (col) => {
+            return `${tableName}."${col}" as "${tableName}.${col}"`
+          }).join(',')
+        },
+      }
     }
 
     let getSelectList = (tableName: string) => {
@@ -132,59 +132,87 @@ export default function App() {
       }).join(',')
     }
 
+    // just a or b
+    if (['just-a', 'just-b'].includes(filter)) {
+      let setName = filter === 'just-a' ? 'a' : 'b'
+      return `select '${setName}' as set_n,
+                     ${set(setName).getKeyList()},
+                     ${set(setName).getSelectList()}
+              from "${set(setName).getTable()}"`
+    }
+
+    // intersection: a intersect b
+    let xxx_x = `with 
+    intersection_ as (
+      select 'ab' as set_n, "MRN" as key1
+      from "snowflake_report"
+      intersect 
+      select 'ab' as set_n, "PATIENT ID" as key1
+      from "vtoc_report"
+    )
+    select intersection_.*,
+           snowflake_report."LNAME" as "snowflake_report.LNAME"
+    from intersection_
+    left join "snowflake_report" on "snowflake_report"."MRN"
+     = intersection_.key1
+    left join "vtoc_report" on "vtoc_report"."PATIENT ID"
+     = intersection_.key1;`
+
+    // all data
     let theLight = `with left_only as (
-      select 'a' as set_n, "${set('a').colName}" as key1
-      from "${set('a').table}"
+      select 'a' as set_n, ${set('a').getKeyList()}
+      from "${set('a').getTable()}"
       except 
-      select 'a' as set_n, "${set('b').colName}" as key1
-      from "${set('b').table}"),
+      select 'a' as set_n, ${set('b').getKeyList()}
+      from "${set('b').getTable()}"),
     right_only as (
-      select 'b' as set_n, "${set('b').colName}" as key1
-      from "${set('b').table}"
+      select 'b' as set_n, ${set('b').getKeyList()}
+      from "${set('b').getTable()}"
       except 
-      select 'b' as set_n, "${set('a').colName}" as key1
-      from "${set('a').table}"
+      select 'b' as set_n, ${set('a').getKeyList()}
+      from "${set('a').getTable()}"
     ),
     intersection_ as (
-      select 'ab' as set_n, "${set('a').colName}" as key1
-      from "${set('a').table}"
+      select 'ab' as set_n, ${set('a').getKeyList()}
+      from "${set('a').getTable()}"
       intersect 
-      select 'ab' as set_n, "${set('b').colName}" as key1
-      from "${set('b').table}"
+      select 'ab' as set_n, ${set('b').getKeyList()}
+      from "${set('b').getTable()}"
     ),
     unionish as (
-      select set_n, key1
+      select set_n, ${set('a').getKeyAliasList()}
       from left_only
       union all
-      select set_n, key1
+      select set_n, ${set('a').getKeyAliasList()}
       from right_only
       union all
-      select set_n, key1
+      select set_n, ${set('a').getKeyAliasList()}
       from intersection_)
-    select unionish.*,
-           ${getSelectList(set('a').table)},
-           ${getSelectList(set('b').table)}
+    select unionish.set_n,
+           ${set('a').getKeyAliasList()},
+           ${set('a').getSelectList()},
+           ${set('b').getSelectList()}
     from unionish
-    left join "${set('a').table}" on "${set('a').table}"."${set('a').colName}"
-     = unionish.key1
-    left join "${set('b').table}" on "${set('b').table}"."${set('b').colName}"
-     = unionish.key1;`
-
+    left join "${set('a').getTable()}" on
+      ${set('a').getLeftJoinPredicates()}
+    left join "${set('b').getTable()}" on
+      ${set('b').getLeftJoinPredicates()}`
     return theLight
   }
 
-  React.useEffect(() => {
-    console.log('in useEffect', filter)
-    if (keys.length >= 2) {
-      console.log(reportSql(keys, filter))
-    }
-  })
+  React.useEffect(() => {})
 
   const handleFilterChange = (
     e: React.MouseEvent<HTMLElement>,
     newValue: Filter
   ) => {
     setFilter(newValue)
+    const sql = reportSql(keys, newValue)
+    console.log('sql', sql)
+    execQuery(sql).then((res) => {
+      setReportData(res.results)
+      setReportColumns(res.columns)
+    })
   }
 
   const loadCsv = async (name: string, csvText: string) => {
@@ -206,9 +234,8 @@ export default function App() {
 
       // insert wa-sqlite way
       for await (const row of theSheet) {
-        let insert_sql = `insert into ${tableName} (${columns
-          .map((col) => `"${col}"`)
-          .join()}) 
+        let insert_sql = `insert into ${tableName}
+                          (${columns.map((col) => `"${col}"`).join()}) 
                           values (${Array(columns.length).fill('?').join()})`
         for await (let stmt of sqlite3.statements(db, insert_sql)) {
           sqlite3.bind_collection(stmt, _.valuesIn(row))
@@ -238,65 +265,69 @@ export default function App() {
   // else
   return (
     <>
-      <Paper
-        elevation={0}
-        sx={{
-          p: 2,
-          margin: 'auto',
-          maxWidth: 1280,
-          flexGrow: 1,
-          backgroundColor: (theme) =>
-            theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
-        }}
-      >
-        <Grid container spacing={2}>
-          <Grid item xs={3}>
-            <Typography gutterBottom variant="subtitle1" component="div">
-              <strong>{'{A}'}</strong> {_.get(keys, '0.table', 'Select keys')}
-            </Typography>
-            <Typography variant="body2" gutterBottom>
-              <Button
-                variant="outlined"
-                startIcon={<VpnKey />}
-                onClick={handleClickOpen}
-              >
-                {_.get(keys, '0.colName', 'Select key')}
-              </Button>
-            </Typography>
-          </Grid>
-
-          <Grid item xs={6}>
-            <VennFilterButtons
-              handleFilterChange={handleFilterChange}
-              filter={filter}
-            />
-          </Grid>
-
-          <Grid item xs={3}>
-            <Typography gutterBottom variant="subtitle1" component="div">
-              <strong>{'{B}'}</strong> {_.get(keys, '1.table', 'Select keys')}
-            </Typography>
-            <Typography variant="body2" gutterBottom>
-              <Button
-                variant="outlined"
-                startIcon={<VpnKey />}
-                onClick={handleClickOpen}
-              >
-                {_.get(keys, '1.colName', 'Select key')}
-              </Button>
-            </Typography>
-          </Grid>
+      <Grid container spacing={2} sx={{ margin: '10px' }}>
+        <Grid item xs={3}>
+          <Typography gutterBottom variant="subtitle1" component="div">
+            <strong>{'{A}'}</strong> {keys[0][0]?.table || 'Select keys'}
+          </Typography>
+          <Typography variant="body2" gutterBottom>
+            <Button
+              variant="outlined"
+              startIcon={<VpnKey />}
+              onClick={handleClickOpen}
+              sx={{ textAlign: 'left' }}
+            >
+              {keys[0].map((o: KeyDesc) => {
+                return (
+                  <>
+                    {o.colName}
+                    <br />
+                  </>
+                )
+              })}
+            </Button>
+          </Typography>
         </Grid>
 
-        <KeySelection
-          keys={keys}
-          tableNames={tableNames}
-          columns={columns}
-          open={open}
-          handleOk_={handleOk}
-          handleCancel_={handleCancel}
-        />
-      </Paper>
+        <Grid item xs={6}>
+          <VennFilterButtons
+            handleFilterChange={handleFilterChange}
+            filter={filter}
+          />
+        </Grid>
+
+        <Grid item xs={3}>
+          <Typography gutterBottom variant="subtitle1" component="div">
+            <strong>{'{B}'}</strong> {keys[1][0]?.table || 'Select keys'}
+          </Typography>
+          <Typography variant="body2" gutterBottom>
+            <Button
+              variant="outlined"
+              startIcon={<VpnKey />}
+              onClick={handleClickOpen}
+              sx={{ textAlign: 'left' }}
+            >
+              {keys[1].map((o: KeyDesc) => {
+                return (
+                  <>
+                    {o.colName}
+                    <br />
+                  </>
+                )
+              })}
+            </Button>
+          </Typography>
+        </Grid>
+      </Grid>
+
+      <KeySelection
+        keys={keys}
+        tableNames={tableNames}
+        columns={columns}
+        open={open}
+        handleOk_={handleOk}
+        handleCancel_={handleCancel}
+      />
 
       {reportData.length > 0 ? (
         <DataTable

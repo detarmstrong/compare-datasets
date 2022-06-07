@@ -9,3 +9,10 @@ export interface TableDescription {
   table_name: string
   columns: string[]
 }
+
+export interface KeyDesc {
+  table: string
+  colName: string
+}
+
+export type KeyDescArray =[KeyDesc[], KeyDesc[]]

@@ -14,6 +14,8 @@ import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
 import Grid from '@mui/material/Grid'
 import _ from 'lodash'
+import { Badge } from '@mui/material'
+import { KeyDesc, KeyDescArray } from './types'
 
 interface SimpleDialogProps {
   open: boolean
@@ -26,14 +28,26 @@ interface SimpleDialogProps {
 
 export function KeySelection(props: SimpleDialogProps) {
   const { handleOk_, handleCancel_, open } = props
-  const [selectedKeys, setSelectedKeys] = React.useState({ 0: null, 1: null })
+  const defaultSelectedKeys: KeyDescArray = [[], []]
+  const [selectedKeys, setSelectedKeys] = React.useState(defaultSelectedKeys)
 
   const handleListItemClick = (
     table: string,
     colName: string,
-    index: number
+    tableIndex: number
   ) => {
-    setSelectedKeys({ ...selectedKeys, [index]: { table, colName } })
+    let keyClone = _.cloneDeep(selectedKeys)
+    let keys: KeyDesc[] = keyClone[tableIndex]
+
+    let newKeys: KeyDesc[] = _.xorBy(
+      keys,
+      [{ colName, table }] as KeyDesc[],
+      'colName'
+    )
+
+    keyClone[tableIndex] = newKeys
+
+    setSelectedKeys(keyClone)
   }
 
   let table_descriptions = [
@@ -56,32 +70,40 @@ export function KeySelection(props: SimpleDialogProps) {
                     "{t.tableName}"
                   </Typography>
                   <List sx={{ pt: 0 }}>
-                    {t.columns.map((name, i) => (
-                      <ListItem
-                        disablePadding
-                        button
-                        onClick={() =>
-                          handleListItemClick(t.tableName, name, table_index)
-                        }
-                        key={t.tableName + name}
-                      >
-                        <ListItemButton>
-                          {_.get(selectedKeys, `${table_index}.colName`) ===
-                            name && (
+                    {t.columns.map((name, i) => {
+                      let keyRank = _.findIndex(
+                        selectedKeys[table_index],
+                        (elem) => elem.colName === name
+                      )
+
+                      return (
+                        <ListItem
+                          disablePadding
+                          button
+                          onClick={() =>
+                            handleListItemClick(t.tableName, name, table_index)
+                          }
+                          key={t.tableName + name}
+                        >
+                          <ListItemButton>
+                            {keyRank >= 0 && (
                               <ListItemIcon>
-                                <VpnKey />
+                                <Badge
+                                  badgeContent={keyRank + 1}
+                                  color="primary"
+                                >
+                                  <VpnKey />
+                                </Badge>
                               </ListItemIcon>
                             )}
-                          <ListItemText
-                            inset={
-                              _.get(selectedKeys, `${table_index}.colName`) !==
-                              name
-                            }
-                            primary={name}
-                          />
-                        </ListItemButton>
-                      </ListItem>
-                    ))}
+                            <ListItemText
+                              inset={keyRank == -1}
+                              primary={name}
+                            />
+                          </ListItemButton>
+                        </ListItem>
+                      )
+                    })}
                   </List>
                 </Grid>
               )
