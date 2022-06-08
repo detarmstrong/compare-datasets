@@ -90,7 +90,7 @@ export default function App() {
   }
 
   const reportSql = (keySelection: KeyDescArray, filter: Filter) => {
-    let set = (setName: string) => {
+    let set = (setName: 'a' | 'b') => {
       return {
         getKeyCols: (): KeyDesc[] => keySelection[setName === 'a' ? 0 : 1],
         getTable: function (): string {
@@ -124,21 +124,38 @@ export default function App() {
       }
     }
 
-    let getSelectList = (tableName: string) => {
-      let tmpIdx = _.indexOf(tableNames, tableName)
-      let tableColumns = columns[tmpIdx]
-      return _.map(tableColumns, (col) => {
-        return `${tableName}."${col}" as "${tableName}.${col}"`
-      }).join(',')
-    }
-
     // just a or b
     if (['just-a', 'just-b'].includes(filter)) {
-      let setName = filter === 'just-a' ? 'a' : 'b'
+      let setName: 'a' | 'b' = filter === 'just-a' ? 'a' : 'b'
       return `select '${setName}' as set_n,
                      ${set(setName).getKeyList()},
                      ${set(setName).getSelectList()}
               from "${set(setName).getTable()}"`
+    }
+
+    // A - B
+    // How can I construct this so the compiler can tell me if I'm looking
+    // for a valid member of the enum type?
+    if (['a-minus-b', 'b-minus-a'].includes(filter)) {
+      let setName: 'a' | 'b' = filter === 'a-minus-b' ? 'a' : 'b'
+      let contraSet: 'a' | 'b' = setName === 'a' ? 'b' : 'a'
+      // take all rows from a and subtract where there is key match on b
+      let querySql = `with left_only as (
+        select '${setName}' as set_n, ${set(setName).getKeyList()}
+        from "${set(setName).getTable()}"
+        except 
+        select '${setName}' as set_n, ${set(contraSet).getKeyList()}
+        from "${set(contraSet).getTable()}"),
+      unionish as (
+        select set_n, ${set(setName).getKeyAliasList()}
+        from left_only)
+      select unionish.set_n,
+             ${set(setName).getKeyAliasList()},
+             ${set(setName).getSelectList()}
+      from unionish
+      left join "${set(setName).getTable()}" on
+        ${set(setName).getLeftJoinPredicates()}`
+      return querySql
     }
 
     // intersection: a intersect b
