@@ -17,6 +17,7 @@ import * as SQLite from 'wa-sqlite'
 
 import { Filter, KeyDesc, KeyDescArray } from './types'
 import { KeySelection } from './KeySelection'
+import { Box } from '@mui/material'
 
 export default function App() {
   const [open, setOpen] = React.useState(true)
@@ -276,26 +277,28 @@ export default function App() {
     <>
       <Grid container spacing={2} sx={{ margin: '10px' }}>
         <Grid item xs={3}>
-          <Typography gutterBottom variant="subtitle1" component="div">
-            <strong>{'{A}'}</strong> {keys[0][0]?.table || 'Select keys'}
-          </Typography>
-          <Typography variant="body2" gutterBottom>
-            <Button
-              variant="outlined"
-              startIcon={<VpnKey />}
-              onClick={handleClickOpen}
-              sx={{ textAlign: 'left' }}
-            >
-              {keys[0].map((o: KeyDesc) => {
-                return (
-                  <>
-                    {o.colName}
-                    <br />
-                  </>
-                )
-              })}
-            </Button>
-          </Typography>
+          <Box sx={{ width: 'fit-content', float: 'right' }}>
+            <Typography gutterBottom variant="subtitle1" component="div">
+              <strong>{'{A}'}</strong> {keys[0][0]?.table || 'Select keys'}
+            </Typography>
+            <Typography variant="body2" gutterBottom>
+              <Button
+                variant="outlined"
+                startIcon={<VpnKey />}
+                onClick={handleClickOpen}
+                sx={{ textAlign: 'left' }}
+              >
+                {keys[0].map((o: KeyDesc) => {
+                  return (
+                    <>
+                      {o.colName}
+                      <br />
+                    </>
+                  )
+                })}
+              </Button>
+            </Typography>
+          </Box>
         </Grid>
 
         <Grid item xs={6}>
