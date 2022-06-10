@@ -21,7 +21,7 @@ import { KeySelection } from './KeySelection'
 export default function App() {
   const [open, setOpen] = React.useState(true)
   const [keys, setKeys] = React.useState([[], []] as KeyDescArray)
-  const [filter, setFilter] = React.useState<Filter>('a-intersection-b')
+  const [filter, setFilter] = React.useState<Filter>('inner-joy-report')
   const [columns, setColumns] = React.useState([] as string[][])
   const [reportColumns, setReportColumns] = React.useState([] as string[])
   const [reportData, setReportData] = React.useState([] as {}[])
@@ -89,7 +89,7 @@ export default function App() {
     setOpen(false)
   }
 
-  const reportSql = (keySelection: KeyDescArray, filter: Filter) => {
+  const reportSql = (keySelection: KeyDescArray, filter: Filter): string => {
     let set = (setName: 'a' | 'b') => {
       return {
         getKeyCols: (): KeyDesc[] => keySelection[setName === 'a' ? 0 : 1],
@@ -117,15 +117,18 @@ export default function App() {
           let tableName = this.getTable()
           let tmpIdx = _.indexOf(tableNames, tableName)
           let tableColumns = columns[tmpIdx]
+          let lookup: { [key: string]: string } = {}
+          lookup[tableNames[0]] = '{A}'
+          lookup[tableNames[1]] = '{B}'
           return _.map(tableColumns, (col) => {
-            return `${tableName}."${col}" as "${tableName}.${col}"`
+            return `${tableName}."${col}" as "${lookup[tableName]}.${col}"`
           }).join(',')
         },
       }
     }
 
     // just a or b
-    if (['just-a', 'just-b'].includes(filter)) {
+    if ((['just-a', 'just-b'] as Filter[]).includes(filter)) {
       let setName: 'a' | 'b' = filter === 'just-a' ? 'a' : 'b'
       return `select '${setName}' as set_n,
                      ${set(setName).getKeyList()},
@@ -136,7 +139,7 @@ export default function App() {
     // A - B
     // How can I construct this so the compiler can tell me if I'm looking
     // for a valid member of the enum type?
-    if (['a-minus-b', 'b-minus-a'].includes(filter)) {
+    if ((['a-minus-b', 'b-minus-a'] as Filter[]).includes(filter)) {
       let setName: 'a' | 'b' = filter === 'a-minus-b' ? 'a' : 'b'
       let contraSet: 'a' | 'b' = setName === 'a' ? 'b' : 'a'
       // take all rows from a and subtract where there is key match on b
@@ -159,21 +162,6 @@ export default function App() {
     }
 
     // intersection: a intersect b
-    let xxx_x = `with 
-    intersection_ as (
-      select 'ab' as set_n, "MRN" as key1
-      from "snowflake_report"
-      intersect 
-      select 'ab' as set_n, "PATIENT ID" as key1
-      from "vtoc_report"
-    )
-    select intersection_.*,
-           snowflake_report."LNAME" as "snowflake_report.LNAME"
-    from intersection_
-    left join "snowflake_report" on "snowflake_report"."MRN"
-     = intersection_.key1
-    left join "vtoc_report" on "vtoc_report"."PATIENT ID"
-     = intersection_.key1;`
 
     // all data
     let theLight = `with left_only as (
@@ -197,12 +185,14 @@ export default function App() {
       from "${set('b').getTable()}"
     ),
     unionish as (
+      <% if (filter !== 'a-intersection-b') { %>
       select set_n, ${set('a').getKeyAliasList()}
       from left_only
       union all
       select set_n, ${set('a').getKeyAliasList()}
       from right_only
       union all
+      <% } %>
       select set_n, ${set('a').getKeyAliasList()}
       from intersection_)
     select unionish.set_n,
@@ -214,7 +204,9 @@ export default function App() {
       ${set('a').getLeftJoinPredicates()}
     left join "${set('b').getTable()}" on
       ${set('b').getLeftJoinPredicates()}`
-    return theLight
+
+    let t = _.template(theLight)
+    return t({ filter })
   }
 
   React.useEffect(() => {})

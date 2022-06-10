@@ -1,4 +1,5 @@
 export type Filter =
+  | 'inner-joy-report'
   | 'just-a'
   | 'a-minus-b'
   | 'a-intersection-b'
