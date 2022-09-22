@@ -15,6 +15,7 @@ interface FormProps {
   loadCsv: (name: string, csvText: string) => {}
   setColumns: (cols: string[][]) => void
   setTableNames: (tableNames: string[]) => void
+  setOpen: (open: boolean) => void
 }
 
 function Form(props: FormProps) {
@@ -29,26 +30,35 @@ function Form(props: FormProps) {
 
     let promises = _.map(files, (f: File) => {
       let fileName = f.name.split('.')[0]
-      return f.text().then((csvText) => {
-        return props.loadCsv(fileName, csvText)
+      return f
+        .text()
+        .then((csvText) => {
+          return props.loadCsv(fileName, csvText)
+        })
+        .catch((error) => console.error('error', error))
+    })
+
+    Promise.allSettled(promises)
+      .then((results) => {
+        console.log('results', results)
+        let columns = _.map(results, (r) =>
+          r.status === 'fulfilled'
+            ? (r.value as { columns: string[] }).columns
+            : []
+        )
+
+        let tableNames = _.map(results, (r) =>
+          r.status === 'fulfilled'
+            ? (r.value as { tableName: string[] }).tableName
+            : []
+        ).flat()
+        props.setTableNames(tableNames)
+        props.setColumns(columns)
+        props.setOpen(true)
       })
-    })
-
-    Promise.allSettled(promises).then((results) => {
-      let columns = _.map(results, (r) =>
-        r.status === 'fulfilled'
-          ? (r.value as { columns: string[] }).columns
-          : []
-      )
-
-      let tableNames = _.map(results, (r) =>
-        r.status === 'fulfilled'
-          ? (r.value as { tableName: string[] }).tableName
-          : []
-      ).flat()
-      props.setTableNames(tableNames)
-      props.setColumns(columns)
-    })
+      .catch((error) => {
+        console.error('Error on loading CSV', error)
+      })
   }
 
   const backgroundImage = `url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='18' ry='18' stroke='%23000000FF' stroke-width='4' stroke-dasharray='6%2c 14' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e")`
@@ -56,7 +66,7 @@ function Form(props: FormProps) {
 
   const stack2 = (
     <div
-      className="container"
+      className="dragNDropContainer"
       style={{ backgroundImage: backgroundImage, borderRadius: borderRadius }}
     >
       <div className="box box-1">

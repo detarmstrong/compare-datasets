@@ -14,13 +14,12 @@ body {
 }
 
 .datatable {
-  background: #bbb;
   flex: 1; /* or height: 100% */
   font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
   font-size: 0.8rem;
 }
 
-.container {
+.dragNDropContainer {
   min-height: 100px;
   display: flex;
   flex-direction: column;

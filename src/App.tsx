@@ -3,42 +3,43 @@ import Button from '@mui/material/Button'
 import VpnKey from '@mui/icons-material/VpnKey'
 import Typography from '@mui/material/Typography'
 import Grid from '@mui/material/Grid'
-import Paper from '@mui/material/Paper'
+import { Box } from '@mui/material'
+
+import _ from 'lodash'
+import { csvParse, autoType } from 'd3-dsv'
+import SQLiteESMFactory from 'wa-sqlite/dist/wa-sqlite.mjs'
+import * as SQLite from 'wa-sqlite'
 
 import DataTable from './DataTable'
 import DragAndDropForm from './DragNDropForm'
 import VennFilterButtons from './VennFilterButtons'
-
-import _ from 'lodash'
-import { csvParse, autoType } from 'd3-dsv'
-
-import SQLiteESMFactory from 'wa-sqlite/dist/wa-sqlite.mjs'
-import * as SQLite from 'wa-sqlite'
-
 import { Filter, KeyDesc, KeyDescArray } from './types'
 import { KeySelection } from './KeySelection'
-import { Box } from '@mui/material'
 
 export default function App() {
-  const [open, setOpen] = React.useState(true)
+  const [open, setOpen] = React.useState(false)
   const [keys, setKeys] = React.useState([[], []] as KeyDescArray)
   const [filter, setFilter] = React.useState<Filter>('inner-joy-report')
   const [columns, setColumns] = React.useState([] as string[][])
   const [reportColumns, setReportColumns] = React.useState([] as string[])
   const [reportData, setReportData] = React.useState([] as {}[])
   const [tableNames, setTableNames] = React.useState([] as string[])
+  const [reportCounts, setReportCounts] = React.useState({ A: 0, B: 0, AB: 0 })
+
   const [db, setDb] = React.useState(0)
+  // numeric counter to that will reset db each time it is touched
+  const [resetDbConnection, setResetDbConnection] = React.useState(0)
 
   React.useEffect(() => {
     async function initDb() {
       const module = await SQLiteESMFactory()
       const sqlite3 = SQLite.Factory(module)
-      ;(window as any).sqlite3 = sqlite3
+      ;(window as any).sqlite3 = sqlite3 // whacky ; is here to satisfy code formatter
       const db = await sqlite3.open_v2('innerjoy')
       setDb(db)
     }
     initDb()
-  }, []) // NOTE empty array will cause this to only update on init
+  }, [resetDbConnection])
 
   const handleClickOpen = () => {
     setOpen(true)
@@ -46,7 +47,10 @@ export default function App() {
 
   const execQuery = async (
     sql: string
-  ): Promise<{ results: {}[]; columns: string[] }> => {
+  ): Promise<{
+    results: { count?: number; set_n?: string }[] // Defining count and set_n makes TS happy when rendering the counts
+    columns: string[]
+  }> => {
     const sqlite3 = (window as any).sqlite3
     let results = []
     let columnsTemp = [] // use array here and push to it instead of just setting the variable
@@ -75,22 +79,61 @@ export default function App() {
   }
 
   const handleOk = (keys: KeyDescArray) => {
-    console.log('handleOk', keys, 'filter', filter)
     setKeys(keys)
     setOpen(false)
 
+    // 1. Craft the sql to get the full report and execute it
     const sql = reportSql(keys, filter)
-    execQuery(sql).then((res) => {
-      setReportData(res.results)
-      setReportColumns(res.columns)
-    })
+    execQuery(sql)
+      .then((res) => {
+        setReportData(res.results)
+        setReportColumns(res.columns)
+      })
+      // 2. Craft sql to get counts and then execute that
+      .finally(() => {
+        // 🪆🪆
+        const reportCountSql = reportSql(keys, filter, true)
+        execQuery(reportCountSql).then((res) => {
+          console.log('res', res)
+          let counts: {
+            [key: string]: number
+            A: number
+            B: number
+            AB: number
+          } = {
+            A: 0,
+            B: 0,
+            AB: 0,
+          }
+
+          res.results.forEach(({ set_n, count }) => {
+            if (set_n && count) {
+              counts[set_n.toUpperCase()] = count
+            }
+          })
+          setReportCounts(counts)
+        })
+      })
   }
 
   const handleCancel = () => {
     setOpen(false)
+    // clear out state if the table has NOT been rendered yet; let user redo csv
+    if (reportData.length === 0) {
+      setColumns([])
+      setReportData([])
+      setReportColumns([])
+      setTableNames([])
+      setKeys([[], []] as KeyDescArray)
+      setResetDbConnection(resetDbConnection + 1)
+    }
   }
 
-  const reportSql = (keySelection: KeyDescArray, filter: Filter): string => {
+  const reportSql = (
+    keySelection: KeyDescArray,
+    filter: Filter,
+    returnCounts: boolean = false
+  ): string => {
     let set = (setName: 'a' | 'b') => {
       return {
         getKeyCols: (): KeyDesc[] => keySelection[setName === 'a' ? 0 : 1],
@@ -138,8 +181,6 @@ export default function App() {
     }
 
     // A - B
-    // How can I construct this so the compiler can tell me if I'm looking
-    // for a valid member of the enum type?
     if ((['a-minus-b', 'b-minus-a'] as Filter[]).includes(filter)) {
       let setName: 'a' | 'b' = filter === 'a-minus-b' ? 'a' : 'b'
       let contraSet: 'a' | 'b' = setName === 'a' ? 'b' : 'a'
@@ -154,17 +195,23 @@ export default function App() {
         select set_n, ${set(setName).getKeyAliasList()}
         from left_only)
       select unionish.set_n,
-             ${set(setName).getKeyAliasList()},
-             ${set(setName).getSelectList()}
+        <% if (returnCounts) { %>
+          count(unionish.set_n) as count
+        <% } else { %>
+          ${set(setName).getKeyAliasList()},
+          ${set(setName).getSelectList()}
+        <% } %>
       from unionish
       left join "${set(setName).getTable()}" on
-        ${set(setName).getLeftJoinPredicates()}`
-      return querySql
+        ${set(setName).getLeftJoinPredicates()}
+      <% if (returnCounts) { %>
+        group by unionish.set_n
+      <% } %>
+        `
+      return _.template(querySql)({ filter, returnCounts })
     }
 
-    // intersection: a intersect b
-
-    // all data
+    // All Data
     let theLight = `with left_only as (
       select 'a' as set_n, ${set('a').getKeyList()}
       from "${set('a').getTable()}"
@@ -178,7 +225,7 @@ export default function App() {
       select 'b' as set_n, ${set('a').getKeyList()}
       from "${set('a').getTable()}"
     ),
-    intersection_ as (
+    intersection as (
       select 'ab' as set_n, ${set('a').getKeyList()}
       from "${set('a').getTable()}"
       intersect 
@@ -195,22 +242,29 @@ export default function App() {
       union all
       <% } %>
       select set_n, ${set('a').getKeyAliasList()}
-      from intersection_)
+      from intersection)
     select unionish.set_n,
+        <% if (returnCounts) { %>
+          count(unionish.set_n) as count
+        <% } else { %>
            ${set('a').getKeyAliasList()},
            ${set('a').getSelectList()},
            ${set('b').getSelectList()}
+        <% } %>
     from unionish
     left join "${set('a').getTable()}" on
       ${set('a').getLeftJoinPredicates()}
     left join "${set('b').getTable()}" on
-      ${set('b').getLeftJoinPredicates()}`
+      ${set('b').getLeftJoinPredicates()}
+    <% if (returnCounts) { %>
+      group by unionish.set_n
+    <% } %>
+      `
 
-    let t = _.template(theLight)
-    return t({ filter })
+    // Use lodash template with erb(!?) syntax so I can inline
+    // conditionals making this full query more readable 👀
+    return _.template(theLight)({ filter, returnCounts })
   }
-
-  React.useEffect(() => {})
 
   const handleFilterChange = (
     e: React.MouseEvent<HTMLElement>,
@@ -219,10 +273,36 @@ export default function App() {
     setFilter(newValue)
     const sql = reportSql(keys, newValue)
     console.log('sql', sql)
-    execQuery(sql).then((res) => {
-      setReportData(res.results)
-      setReportColumns(res.columns)
-    })
+    execQuery(sql)
+      .then((res) => {
+        setReportData(res.results)
+        setReportColumns(res.columns)
+      })
+      // 2. Craft sql to get counts and then execute that
+      .finally(() => {
+        // 🪆🪆
+        const reportCountSql = reportSql(keys, filter, true)
+        execQuery(reportCountSql).then((res) => {
+          console.log('res', res)
+          let counts: {
+            [key: string]: number
+            A: number
+            B: number
+            AB: number
+          } = {
+            A: 0,
+            B: 0,
+            AB: 0,
+          }
+
+          res.results.forEach(({ set_n, count }) => {
+            if (set_n && count) {
+              counts[set_n.toUpperCase()] = count
+            }
+          })
+          setReportCounts(counts)
+        })
+      })
   }
 
   const loadCsv = async (name: string, csvText: string) => {
@@ -253,7 +333,7 @@ export default function App() {
             // this is never executed. why not?
             console.log('stepped', row)
 
-            // Just do nothing? This doesn't feel right
+            // Just do nothing? This doesn't feel right 🕳️
           }
         }
       }
@@ -268,6 +348,7 @@ export default function App() {
         loadCsv={loadCsv}
         setColumns={setColumns}
         setTableNames={setTableNames}
+        setOpen={setOpen}
       />
     )
   }
@@ -346,6 +427,7 @@ export default function App() {
           columns={reportColumns}
           data={reportData}
           tableNames={tableNames}
+          reportCounts={reportCounts}
         />
       ) : (
         ''

@@ -65,7 +65,7 @@ export function KeySelection(props: SimpleDialogProps) {
           <Grid container spacing={2}>
             {table_descriptions.map((t, table_index) => {
               return (
-                <Grid item xs={6}>
+                <Grid item xs={6} key={t.tableName + name}>
                   <Typography variant="subtitle1" component="div">
                     "{t.tableName}"
                   </Typography>
