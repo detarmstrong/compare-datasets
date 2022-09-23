@@ -23,13 +23,10 @@ jobs:
           node-version: 17.x
 
       - name: Install npm packages
-        run: npm install
+        run: npm ci
 
       - name: Build project
         run: npm run build
-
-      - name: run tests
-        run: npm run test
 
       - name: Upload prod build files
         uses: actions/upload-artifact@v2
