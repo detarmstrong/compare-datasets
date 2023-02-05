@@ -5,10 +5,10 @@ import Typography from '@mui/material/Typography'
 import Grid from '@mui/material/Grid'
 import { Box } from '@mui/material'
 
-import _ from 'lodash'
-import { csvParse, autoType } from 'd3-dsv'
 import SQLiteESMFactory from 'wa-sqlite/dist/wa-sqlite.mjs'
 import * as SQLite from 'wa-sqlite'
+import _ from 'lodash'
+import { csvParse, autoType } from 'd3-dsv'
 
 import DataTable from './DataTable'
 import DragAndDropForm from './DragNDropForm'
@@ -280,7 +280,7 @@ export default function App() {
       })
       // 2. Craft sql to get counts and then execute that
       .finally(() => {
-        // 🪆🪆
+        //  🪆🪆
         const reportCountSql = reportSql(keys, filter, true)
         execQuery(reportCountSql).then((res) => {
           console.log('res', res)
@@ -308,7 +308,11 @@ export default function App() {
   const loadCsv = async (name: string, csvText: string) => {
     // parse csv
     let theSheet = csvParse(csvText, autoType)
-    let columns = theSheet.columns
+
+    // make the columns sqlite safe
+    let columns = _.map(theSheet.columns, (col: string) =>
+      col.replace(/[^0-9A-Za-z _-]/g, '_')
+    )
 
     // generate unique table name
     let tableName = name
