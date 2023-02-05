@@ -13,17 +13,18 @@ import { csvParse, autoType } from 'd3-dsv'
 import DataTable from './DataTable'
 import DragAndDropForm from './DragNDropForm'
 import VennFilterButtons from './VennFilterButtons'
-import { Filter, KeyDesc, KeyDescArray } from './types'
+import { Filter, KeyDescription, KeyDescriptionArray } from './types'
 import { KeySelection } from './KeySelection'
 
 export default function App() {
   const [open, setOpen] = React.useState(false)
-  const [keys, setKeys] = React.useState([[], []] as KeyDescArray)
+  const [keys, setKeys] = React.useState([[], []] as KeyDescriptionArray)
   const [filter, setFilter] = React.useState<Filter>('inner-joy-report')
   const [columns, setColumns] = React.useState([] as string[][])
   const [reportColumns, setReportColumns] = React.useState([] as string[])
   const [reportData, setReportData] = React.useState([] as {}[])
   const [tableNames, setTableNames] = React.useState([] as string[])
+  const [sheetNames, setSheetNames] = React.useState([] as string[])
   const [reportCounts, setReportCounts] = React.useState({ A: 0, B: 0, AB: 0 })
 
   const [db, setDb] = React.useState(0)
@@ -78,7 +79,7 @@ export default function App() {
     return { results: results[0], columns: columnsTemp[0] }
   }
 
-  const handleOk = (keys: KeyDescArray) => {
+  const handleOk = (keys: KeyDescriptionArray) => {
     setKeys(keys)
     setOpen(false)
 
@@ -124,19 +125,21 @@ export default function App() {
       setReportData([])
       setReportColumns([])
       setTableNames([])
-      setKeys([[], []] as KeyDescArray)
+      setSheetNames([])
+      setKeys([[], []] as KeyDescriptionArray)
       setResetDbConnection(resetDbConnection + 1)
     }
   }
 
   const reportSql = (
-    keySelection: KeyDescArray,
+    keySelection: KeyDescriptionArray,
     filter: Filter,
     returnCounts: boolean = false
   ): string => {
     let set = (setName: 'a' | 'b') => {
       return {
-        getKeyCols: (): KeyDesc[] => keySelection[setName === 'a' ? 0 : 1],
+        getKeyCols: (): KeyDescription[] =>
+          keySelection[setName === 'a' ? 0 : 1],
         getTable: function (): string {
           return this.getKeyCols()[0].table
         },
@@ -352,6 +355,7 @@ export default function App() {
         loadCsv={loadCsv}
         setColumns={setColumns}
         setTableNames={setTableNames}
+        setSheetNames={setSheetNames}
         setOpen={setOpen}
       />
     )
@@ -364,7 +368,7 @@ export default function App() {
         <Grid item xs={3}>
           <Box sx={{ width: 'fit-content', float: 'right' }}>
             <Typography gutterBottom variant="subtitle1" component="div">
-              <strong>{'{A}'}</strong> {keys[0][0]?.table || 'Select keys'}
+              <strong>{'{A}'}</strong> {keys[0][0]?.sheetName || 'Select keys'}
             </Typography>
             <Typography variant="body2" gutterBottom>
               <Button
@@ -373,7 +377,7 @@ export default function App() {
                 onClick={handleClickOpen}
                 sx={{ textAlign: 'left' }}
               >
-                {keys[0].map((o: KeyDesc) => {
+                {keys[0].map((o: KeyDescription) => {
                   return (
                     <>
                       {o.colName}
@@ -395,7 +399,7 @@ export default function App() {
 
         <Grid item xs={3}>
           <Typography gutterBottom variant="subtitle1" component="div">
-            <strong>{'{B}'}</strong> {keys[1][0]?.table || 'Select keys'}
+            <strong>{'{B}'}</strong> {keys[1][0]?.sheetName || 'Select keys'}
           </Typography>
           <Typography variant="body2" gutterBottom>
             <Button
@@ -404,7 +408,7 @@ export default function App() {
               onClick={handleClickOpen}
               sx={{ textAlign: 'left' }}
             >
-              {keys[1].map((o: KeyDesc) => {
+              {keys[1].map((o: KeyDescription) => {
                 return (
                   <>
                     {o.colName}
@@ -420,6 +424,7 @@ export default function App() {
       <KeySelection
         keys={keys}
         tableNames={tableNames}
+        sheetNames={sheetNames}
         columns={columns}
         open={open}
         handleOk_={handleOk}

@@ -11,9 +11,10 @@ export interface TableDescription {
   columns: string[]
 }
 
-export interface KeyDesc {
+export interface KeyDescription {
   table: string
+  sheetName: string
   colName: string
 }
 
-export type KeyDescArray =[KeyDesc[], KeyDesc[]]
+export type KeyDescriptionArray =[KeyDescription[], KeyDescription[]]

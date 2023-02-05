@@ -15,12 +15,13 @@ import Box from '@mui/material/Box'
 import Grid from '@mui/material/Grid'
 import _ from 'lodash'
 import { Badge } from '@mui/material'
-import { KeyDesc, KeyDescArray } from './types'
+import { KeyDescription, KeyDescriptionArray } from './types'
 
 interface SimpleDialogProps {
   open: boolean
   keys: {}
   tableNames: string[]
+  sheetNames: string[]
   columns: string[][]
   handleOk_: (value: any) => void
   handleCancel_: () => void
@@ -28,20 +29,21 @@ interface SimpleDialogProps {
 
 export function KeySelection(props: SimpleDialogProps) {
   const { handleOk_, handleCancel_, open } = props
-  const defaultSelectedKeys: KeyDescArray = [[], []]
+  const defaultSelectedKeys: KeyDescriptionArray = [[], []]
   const [selectedKeys, setSelectedKeys] = React.useState(defaultSelectedKeys)
 
   const handleListItemClick = (
     table: string,
     colName: string,
-    tableIndex: number
+    tableIndex: number,
+    sheetName: string
   ) => {
     let keyClone = _.cloneDeep(selectedKeys)
-    let keys: KeyDesc[] = keyClone[tableIndex]
+    let keys: KeyDescription[] = keyClone[tableIndex]
 
-    let newKeys: KeyDesc[] = _.xorBy(
+    let newKeys: KeyDescription[] = _.xorBy(
       keys,
-      [{ colName, table }] as KeyDesc[],
+      [{ colName, table, sheetName }] as KeyDescription[],
       'colName'
     )
 
@@ -51,8 +53,16 @@ export function KeySelection(props: SimpleDialogProps) {
   }
 
   let table_descriptions = [
-    { tableName: props.tableNames[0], columns: props.columns[0] },
-    { tableName: props.tableNames[1], columns: props.columns[1] },
+    {
+      tableName: props.tableNames[0],
+      sheetName: props.sheetNames[0],
+      columns: props.columns[0],
+    },
+    {
+      tableName: props.tableNames[1],
+      sheetName: props.sheetNames[1],
+      columns: props.columns[1],
+    },
   ]
   return (
     <Dialog open={open} maxWidth={false}>
@@ -67,13 +77,13 @@ export function KeySelection(props: SimpleDialogProps) {
               return (
                 <Grid item xs={6} key={t.tableName + name}>
                   <Typography variant="subtitle1" component="div">
-                    "{t.tableName}"
+                    "{t.sheetName}"
                   </Typography>
                   <List sx={{ pt: 0 }}>
-                    {t.columns.map((name, i) => {
+                    {t.columns.map((colName, i) => {
                       let keyRank = _.findIndex(
                         selectedKeys[table_index],
-                        (elem) => elem.colName === name
+                        (elem) => elem.colName === colName
                       )
 
                       return (
@@ -81,9 +91,14 @@ export function KeySelection(props: SimpleDialogProps) {
                           disablePadding
                           button
                           onClick={() =>
-                            handleListItemClick(t.tableName, name, table_index)
+                            handleListItemClick(
+                              t.tableName,
+                              colName,
+                              table_index,
+                              t.sheetName
+                            )
                           }
-                          key={t.tableName + name}
+                          key={t.tableName + colName}
                         >
                           <ListItemButton>
                             {keyRank >= 0 && (
@@ -98,7 +113,7 @@ export function KeySelection(props: SimpleDialogProps) {
                             )}
                             <ListItemText
                               inset={keyRank == -1}
-                              primary={name}
+                              primary={colName}
                             />
                           </ListItemButton>
                         </ListItem>

@@ -15,21 +15,23 @@ interface FormProps {
   loadCsv: (name: string, csvText: string) => {}
   setColumns: (cols: string[][]) => void
   setTableNames: (tableNames: string[]) => void
+  setSheetNames: (sheetNames: string[]) => void
   setOpen: (open: boolean) => void
 }
 
 function Form(props: FormProps) {
   const [files, setFiles] = useState([])
-  const [sheetNames, setSheetNames] = useState([] as string[])
 
   const fileTypes = ['CSV', 'DB']
 
   function handleFileChange(files: []) {
     setFiles(files)
-    setSheetNames(_.map(files, (f: File) => f.name))
+    props.setSheetNames(_.map(files, (f: File) => f.name.split('.')[0]))
 
     let promises = _.map(files, (f: File) => {
-      let fileName = f.name.split('.')[0]
+      let displayFileName = f.name.split('.')[0]
+      let fileName = displayFileName.replace(/[^0-9A-Za-z _-]/g, '_')
+
       return f
         .text()
         .then((csvText) => {
