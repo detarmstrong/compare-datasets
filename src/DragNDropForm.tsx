@@ -6,8 +6,9 @@
 // list column names in two parallel vertical lists
 
 import { Typography } from '@mui/material'
+import { resolveObjectURL } from 'buffer'
 import _ from 'lodash'
-import React, { useState } from 'react'
+import React, { useState, ClipboardEvent } from 'react'
 import { FileUploader } from 'react-drag-drop-files'
 import './styles.scss'
 
@@ -21,8 +22,9 @@ interface FormProps {
 
 function Form(props: FormProps) {
   const [files, setFiles] = useState([])
+  const [pastes, setPastes] = useState([] as string[])
 
-  const fileTypes = ['CSV', 'DB']
+  const fileTypes = ['CSV']
 
   function handleFileChange(files: []) {
     setFiles(files)
@@ -30,14 +32,14 @@ function Form(props: FormProps) {
 
     let promises = _.map(files, (f: File) => {
       let displayFileName = f.name.split('.')[0]
-      let fileName = displayFileName.replace(/[^0-9A-Za-z _-]/g, '_')
+      let tableName = displayFileName.replace(/[^0-9A-Za-z _-]/g, '_')
 
       return f
         .text()
         .then((csvText) => {
-          return props.loadCsv(fileName, csvText)
+          return props.loadCsv(tableName, csvText)
         })
-        .catch((error) => console.error('error', error))
+        .catch((error) => console.error('file error', error))
     })
 
     Promise.allSettled(promises)
@@ -63,6 +65,58 @@ function Form(props: FormProps) {
       })
   }
 
+  function handleOnPaste(e: ClipboardEvent<HTMLInputElement>) {
+    const clipboardData: string = e.clipboardData.getData('Text')
+    // User will be pasting one csv string at a time
+    // Wait for 2 csv strings pasted before moving on
+    if (typeof clipboardData === 'string') {
+      pastes.push(clipboardData)
+      setPastes(pastes)
+      // got 2 pastes, ready for business
+      // but how does the user know that?
+      if (pastes.length >= 2) {
+        props.setSheetNames(['clipboard1', 'clipboard2'])
+        let promises = _.map(pastes, (p, i) => {
+          return new Promise((resolve, reject) => {
+            // HACKY ALERT: I have to do the set timeout. If it's just resolve() with no setTimeout
+            // an error is encountered when running the sql
+            // WHY?
+            setTimeout(() => resolve(1), 1)
+          })
+            .then((result) => {
+              console.log('csv text', result, p)
+              return props.loadCsv('clipboard' + (i + 1), p)
+            })
+            .catch((error) => {
+              console.error('Error loading csv from paste', error)
+            })
+        })
+
+        Promise.allSettled(promises)
+          .then((results) => {
+            console.log('results', results)
+            let columns = _.map(results, (r) =>
+              r.status === 'fulfilled'
+                ? (r.value as { columns: string[] }).columns
+                : []
+            )
+
+            let tableNames = _.map(results, (r) =>
+              r.status === 'fulfilled'
+                ? (r.value as { tableName: string[] }).tableName
+                : []
+            ).flat()
+            props.setTableNames(tableNames)
+            props.setColumns(columns)
+            props.setOpen(true)
+          })
+          .catch((error) => {
+            console.error('Error on setting props after paste', error)
+          })
+      }
+    }
+  }
+
   const backgroundImage = `url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='18' ry='18' stroke='%23000000FF' stroke-width='4' stroke-dasharray='6%2c 14' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e")`
   const borderRadius = `18px`
 
@@ -70,6 +124,7 @@ function Form(props: FormProps) {
     <div
       className="dragNDropContainer"
       style={{ backgroundImage: backgroundImage, borderRadius: borderRadius }}
+      onPaste={handleOnPaste}
     >
       <div className="box box-1">
         <div>
