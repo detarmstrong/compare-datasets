@@ -15,6 +15,7 @@ import DragAndDropForm from './DragNDropForm'
 import VennFilterButtons from './VennFilterButtons'
 import { Filter, KeyDescription, KeyDescriptionArray } from './types'
 import { KeySelection } from './KeySelection'
+import { makeStringsUnique } from './util'
 
 export default function App() {
   const [open, setOpen] = React.useState(false)
@@ -316,6 +317,8 @@ export default function App() {
     let columns = _.map(theSheet.columns, (col: string) =>
       col.replace(/[^0-9A-Za-z _-]/g, '_')
     )
+
+    columns = makeStringsUnique(columns)
 
     // generate unique table name
     let tableName = name
