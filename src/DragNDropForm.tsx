@@ -6,11 +6,11 @@
 // list column names in two parallel vertical lists
 
 import { Typography } from '@mui/material'
-import { resolveObjectURL } from 'buffer'
 import _ from 'lodash'
 import React, { useState, ClipboardEvent } from 'react'
 import { FileUploader } from 'react-drag-drop-files'
 import './styles.scss'
+import { TSVToCSV } from './util'
 
 interface FormProps {
   loadCsv: (name: string, csvText: string) => {}
@@ -67,10 +67,12 @@ function Form(props: FormProps) {
 
   function handleOnPaste(e: ClipboardEvent<HTMLInputElement>) {
     const clipboardData: string = e.clipboardData.getData('Text')
-    // User will be pasting one csv string at a time
+    // User will be pasting one string at a time. We reasonably expect either csv text or tab-delimited
+    // like would come from copying some range out of excel.
     // Wait for 2 csv strings pasted before moving on
     if (typeof clipboardData === 'string') {
-      pastes.push(clipboardData)
+      //convert clipboard data to csv if it's not already
+      pastes.push(TSVToCSV(clipboardData))
       setPastes(pastes)
       // got 2 pastes, ready for business
       // but how does the user know that?
