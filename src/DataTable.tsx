@@ -49,7 +49,7 @@ export default function DataTable({
           }
 
           const script = document.createElement('script')
-          script.src = 'https://sql.js.org/dist/sql-wasm.js'
+          script.src = '/sql-wasm.js'
           script.onload = () => {
             resolve((window as any).initSqlJs)
           }
@@ -62,7 +62,7 @@ export default function DataTable({
 
       // Initialize SQL.js
       const SQL = await initSqlJs({
-        locateFile: (file: string) => `https://sql.js.org/dist/${file}`,
+        locateFile: (file: string) => `/${file}`,
       })
 
       // Create a new database
