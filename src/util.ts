@@ -2,21 +2,23 @@ import _ from 'lodash';
 
 export function makeStringsUnique(strings: string[]): string[] {
   const uniqueStrings: string[] = [];
+  const seen = new Set<string>();
   const stringCounts: Record<string, number> = {};
 
-  _.forEach(strings, originalString => {
+  for (const originalString of strings) {
     let uniqueString = originalString;
     let count = stringCounts[originalString] || 0;
 
     // If the string already exists, append a number to make it unique
-    while (_.includes(uniqueStrings, uniqueString)) {
+    while (seen.has(uniqueString)) {
       uniqueString = `${originalString}${++count}`;
     }
 
     // Update the count for this string and add it to the array of unique strings
     stringCounts[originalString] = count;
+    seen.add(uniqueString);
     uniqueStrings.push(uniqueString);
-  });
+  }
 
   return uniqueStrings;
 }

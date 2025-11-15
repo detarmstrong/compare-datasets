@@ -1,10 +1,3 @@
-// TODO next steps:
-// OK start with just drag target
-// OK drop files onto it
-// OK load all files to sqlite (use filename as table name or use internal table to link internal table id to the user given name)
-//   Chose to use filename as table name as tech debt
-// list column names in two parallel vertical lists
-
 import { Typography } from '@mui/material'
 import _ from 'lodash'
 import React, { useState, ClipboardEvent } from 'react'
