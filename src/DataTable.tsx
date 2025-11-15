@@ -141,7 +141,7 @@ export default function DataTable({
           onClick={downloadSQLiteDatabase}
           sx={{ backgroundColor: 'rgba(25, 118, 210, 0.9)' }}
         >
-          Download SQLite
+          Download as SQLite
         </Button>
         <Chip
           label={countsLabel}

@@ -24,7 +24,7 @@
     "wa-sqlite": "rhashimoto/wa-sqlite#buildless",
     "web-vitals": "^2.1.4"
   },
-  "description": "https://github.com/mui/material-ui/blob/v5.6.2/docs/data/material/components/dialogs/SimpleDialog.tsx",
+  "description": "Do inner joins between CSV files in the browser. Find out what's common and what's different by key between CSV files.",
   "devDependencies": {
     "@babel/preset-typescript": "^7.18.6",
     "@jest/globals": "^29.4.1",
