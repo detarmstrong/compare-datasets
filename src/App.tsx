@@ -314,9 +314,11 @@ export default function App() {
     let theSheet = csvParse(csvText, autoType)
 
     // make the columns sqlite safe
-    let columns = _.map(theSheet.columns, (col: string) =>
-      col.replace(/[^0-9A-Za-z _-]/g, '_')
-    )
+    let columns = _.map(theSheet.columns, (col: string) => {
+      // Replace empty column names with a default name
+      const columnName = col || 'Column'
+      return columnName.replace(/[^0-9A-Za-z _-]/g, '_')
+    })
 
     columns = makeStringsUnique(columns)
 
