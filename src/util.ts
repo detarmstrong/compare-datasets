@@ -23,6 +23,38 @@ export function makeStringsUnique(strings: string[]): string[] {
   return uniqueStrings;
 }
 
+/**
+ * Custom auto-type function for CSV parsing that converts values to appropriate types
+ * but keeps ISO8601 date strings as strings instead of converting to Date objects.
+ * This is necessary because wa-sqlite doesn't handle JavaScript Date objects well.
+ * 
+ * Based on d3-dsv's autoType but preserves date strings.
+ */
+export function autoTypeWithoutDates(object: any): any {
+  for (const key in object) {
+    let value = object[key].trim()
+    let number
+    
+    if (!value) {
+      value = null
+    } else if (value === 'true') {
+      value = true
+    } else if (value === 'false') {
+      value = false
+    } else if (value === 'NaN') {
+      value = NaN
+    } else if (!isNaN((number = +value))) {
+      value = number
+    }
+    // Note: We intentionally skip date conversion here to keep date strings as strings
+    // The original d3-dsv autoType would convert ISO8601 dates to Date objects,
+    // but this causes issues when inserting into SQLite
+    
+    object[key] = value
+  }
+  return object
+}
+
 export function TSVToCSV(TSVText: string): string {
   // Split the input text into rows based on newline characters
   const rows = TSVText.trim().split('\n');

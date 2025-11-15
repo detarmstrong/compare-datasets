@@ -8,14 +8,14 @@ import { Box } from '@mui/material'
 import SQLiteESMFactory from 'wa-sqlite/dist/wa-sqlite.mjs'
 import * as SQLite from 'wa-sqlite'
 import _ from 'lodash'
-import { csvParse, autoType } from 'd3-dsv'
+import { csvParse } from 'd3-dsv'
 
 import DataTable from './DataTable'
 import DragAndDropForm from './DragNDropForm'
 import VennFilterButtons from './VennFilterButtons'
 import { Filter, KeyDescription, KeyDescriptionArray } from './types'
 import { KeySelection } from './KeySelection'
-import { makeStringsUnique } from './util'
+import { makeStringsUnique, autoTypeWithoutDates } from './util'
 
 export default function App() {
   const [open, setOpen] = React.useState(false)
@@ -311,10 +311,10 @@ export default function App() {
 
   const loadCsv = async (name: string, csvText: string) => {
     // parse csv
-    let theSheet = csvParse(csvText, autoType)
+    let theSheet = csvParse(csvText, autoTypeWithoutDates)
 
     // make the columns sqlite safe
-    let columns = _.map(theSheet.columns, (col: string) => {
+    let columns: string[] = _.map(theSheet.columns as string[], (col: string) => {
       // Replace empty column names with a default name
       const columnName = col || 'Column'
       return columnName.replace(/[^0-9A-Za-z _-]/g, '_')
