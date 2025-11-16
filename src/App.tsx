@@ -15,7 +15,7 @@ import DragAndDropForm from './DragNDropForm'
 import VennFilterButtons from './VennFilterButtons'
 import { Filter, KeyDescription, KeyDescriptionArray } from './types'
 import { KeySelection } from './KeySelection'
-import { makeStringsUnique, autoTypeWithoutDates } from './util'
+import { makeStringsUnique } from './util'
 
 export default function App() {
   const [open, setOpen] = React.useState(false)
@@ -310,8 +310,8 @@ export default function App() {
   }
 
   const loadCsv = async (name: string, csvText: string) => {
-    // parse csv
-    let theSheet = csvParse(csvText, autoTypeWithoutDates)
+    // parse csv - keep all values as strings to avoid Date object issues with SQLite
+    let theSheet = csvParse(csvText)
 
     // make the columns sqlite safe
     let columns: string[] = _.map(theSheet.columns as string[], (col: string) => {
