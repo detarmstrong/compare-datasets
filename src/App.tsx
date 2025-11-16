@@ -8,7 +8,7 @@ import { Box } from '@mui/material'
 import SQLiteESMFactory from 'wa-sqlite/dist/wa-sqlite.mjs'
 import * as SQLite from 'wa-sqlite'
 import _ from 'lodash'
-import { csvParse, autoType } from 'd3-dsv'
+import { csvParse } from 'd3-dsv'
 
 import DataTable from './DataTable'
 import DragAndDropForm from './DragNDropForm'
@@ -310,11 +310,11 @@ export default function App() {
   }
 
   const loadCsv = async (name: string, csvText: string) => {
-    // parse csv
-    let theSheet = csvParse(csvText, autoType)
+    // parse csv - keep all values as strings to avoid Date object issues with SQLite
+    let theSheet = csvParse(csvText)
 
     // make the columns sqlite safe
-    let columns = _.map(theSheet.columns, (col: string) => {
+    let columns: string[] = _.map(theSheet.columns as string[], (col: string) => {
       // Replace empty column names with a default name
       const columnName = col || 'Column'
       return columnName.replace(/[^0-9A-Za-z _-]/g, '_')

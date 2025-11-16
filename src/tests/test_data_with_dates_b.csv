@@ -1,0 +1,4 @@
+id,department,date_without_ms,status
+1,Engineering,2023-01-15T10:30:00,active
+2,Sales,2023-02-20T14:45:30,inactive
+3,Marketing,2023-03-25T08:15:45,active
