@@ -17,6 +17,16 @@ import { Filter, KeyDescription, KeyDescriptionArray } from './types'
 import { KeySelection } from './KeySelection'
 import { makeStringsUnique } from './util'
 
+const Logo = () => (
+  <Box sx={{ position: 'absolute', top: 10, left: 10 }}>
+    <img
+      src={process.env.PUBLIC_URL + '/logo.svg'}
+      alt="Compare Datasets Logo"
+      style={{ width: '60px', height: '60px' }}
+    />
+  </Box>
+)
+
 export default function App() {
   const [open, setOpen] = React.useState(false)
   const [keys, setKeys] = React.useState([[], []] as KeyDescriptionArray)
@@ -356,19 +366,23 @@ export default function App() {
 
   if (columns.length !== 2) {
     return (
-      <DragAndDropForm
-        loadCsv={loadCsv}
-        setColumns={setColumns}
-        setTableNames={setTableNames}
-        setSheetNames={setSheetNames}
-        setOpen={setOpen}
-      />
+      <>
+        <Logo />
+        <DragAndDropForm
+          loadCsv={loadCsv}
+          setColumns={setColumns}
+          setTableNames={setTableNames}
+          setSheetNames={setSheetNames}
+          setOpen={setOpen}
+        />
+      </>
     )
   }
 
   // else
   return (
     <>
+      <Logo />
       <Grid container spacing={2} sx={{ margin: '10px' }}>
         <Grid item xs={3}>
           <Box sx={{ width: 'fit-content', float: 'right' }}>

@@ -1,0 +1,23 @@
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Database cylinder (dark gray) -->
+  <!-- Top ellipse -->
+  <ellipse cx="100" cy="35" rx="75" ry="25" fill="#3a3a3a"/>
+  
+  <!-- Middle section with stripes -->
+  <rect x="25" y="35" width="150" height="105" fill="#3a3a3a"/>
+  
+  <!-- White stripes -->
+  <rect x="25" y="60" width="150" height="15" fill="white"/>
+  <rect x="25" y="95" width="150" height="15" fill="white"/>
+  
+  <!-- Bottom ellipse -->
+  <ellipse cx="100" cy="140" rx="75" ry="25" fill="#3a3a3a"/>
+  
+  <!-- Heart (pink/purple outline) -->
+  <path d="M100 130 C100 130 62 92 62 75 C62 62 74 50 87 50 C93 50 100 55 100 55 C100 55 107 50 113 50 C126 50 138 62 138 75 C138 92 100 130 100 130 Z" 
+        fill="#c084c0" stroke="#c084c0" stroke-width="2"/>
+  
+  <!-- Heart (green fill - inner) -->
+  <path d="M100 125 C100 125 68 92 68 78 C68 67 77 58 88 58 C94 58 100 63 100 63 C100 63 106 58 112 58 C123 58 132 67 132 78 C132 92 100 125 100 125 Z" 
+        fill="#5fb35f"/>
+</svg>
