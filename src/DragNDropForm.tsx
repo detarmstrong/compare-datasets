@@ -154,17 +154,21 @@ function Form(props: FormProps) {
         label="Upload or drop two .csv files here"
         children={stack2}
       />
-      <div style={{ 
-        textAlign: 'left', 
-        maxWidth: '400px',
-        margin: '40px auto 0'
-      }}>
+      <div
+        style={{
+          textAlign: 'left',
+          maxWidth: '400px',
+          margin: '40px auto 0',
+        }}
+      >
         <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
           Compare datasets
         </Typography>
         <Typography variant="body1" sx={{ lineHeight: 1.8 }}>
-          1. Upload two datasets<br />
-          2. Join datasets by key<br />
+          1. Upload two datasets
+          <br />
+          2. Join datasets by key
+          <br />
           3. Compare - view discrepancies and similarities
         </Typography>
       </div>
