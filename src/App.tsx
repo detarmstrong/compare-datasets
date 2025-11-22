@@ -16,6 +16,7 @@ import VennFilterButtons from './VennFilterButtons'
 import { Filter, KeyDescription, KeyDescriptionArray } from './types'
 import { KeySelection } from './KeySelection'
 import { makeStringsUnique } from './util'
+import Footer from './Footer'
 
 export default function App() {
   const [open, setOpen] = React.useState(false)
@@ -31,6 +32,7 @@ export default function App() {
   const [db, setDb] = React.useState(0)
   // numeric counter to that will reset db each time it is touched
   const [resetDbConnection, setResetDbConnection] = React.useState(0)
+  const [sqliteVersion, setSqliteVersion] = React.useState('')
 
   React.useEffect(() => {
     async function initDb() {
@@ -39,6 +41,9 @@ export default function App() {
       ;(window as any).sqlite3 = sqlite3 // whacky ; is here to satisfy code formatter
       const db = await sqlite3.open_v2('innerjoy')
       setDb(db)
+      // Get SQLite version
+      const version = sqlite3.libversion()
+      setSqliteVersion(version)
     }
     initDb()
   }, [resetDbConnection])
@@ -356,13 +361,16 @@ export default function App() {
 
   if (columns.length !== 2) {
     return (
-      <DragAndDropForm
-        loadCsv={loadCsv}
-        setColumns={setColumns}
-        setTableNames={setTableNames}
-        setSheetNames={setSheetNames}
-        setOpen={setOpen}
-      />
+      <>
+        <DragAndDropForm
+          loadCsv={loadCsv}
+          setColumns={setColumns}
+          setTableNames={setTableNames}
+          setSheetNames={setSheetNames}
+          setOpen={setOpen}
+        />
+        <Footer sqliteVersion={sqliteVersion} />
+      </>
     )
   }
 
@@ -446,6 +454,8 @@ export default function App() {
       ) : (
         ''
       )}
+
+      <Footer sqliteVersion={sqliteVersion} />
     </>
   )
 }
