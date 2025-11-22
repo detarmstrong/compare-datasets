@@ -156,7 +156,6 @@ function Form(props: FormProps) {
       />
       <div style={{ 
         textAlign: 'left', 
-        marginTop: '40px',
         maxWidth: '400px',
         margin: '40px auto 0'
       }}>
