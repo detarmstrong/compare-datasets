@@ -155,7 +155,7 @@ function Form(props: FormProps) {
         children={stack2}
       />
       <div style={{ 
-        textAlign: 'center', 
+        textAlign: 'left', 
         marginTop: '40px',
         maxWidth: '400px',
         margin: '40px auto 0'
