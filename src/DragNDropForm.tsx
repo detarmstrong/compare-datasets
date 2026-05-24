@@ -1,9 +1,9 @@
 import { Typography } from '@mui/material'
 import _ from 'lodash'
-import React, { useState, ClipboardEvent } from 'react'
+import React, { useState } from 'react'
 import { FileUploader } from 'react-drag-drop-files'
 import './styles.scss'
-import { TSVToCSV } from './util'
+import PasteZones from './PasteZones'
 
 interface FormProps {
   loadCsv: (name: string, csvText: string) => {}
@@ -15,7 +15,6 @@ interface FormProps {
 
 function Form(props: FormProps) {
   const [files, setFiles] = useState([])
-  const [pastes, setPastes] = useState([] as string[])
 
   const fileTypes = ['CSV']
 
@@ -58,68 +57,6 @@ function Form(props: FormProps) {
       })
   }
 
-  function handleOnPaste(e: ClipboardEvent<HTMLInputElement>) {
-    const clipboardData: string = e.clipboardData.getData('Text')
-    let clipboardDataNormalized: string = ''
-    // User will be pasting one string at a time. We reasonably expect either csv text or tab-delimited
-    // like would come from copying some range out of excel.
-    // Wait for 2 csv strings pasted before moving on
-    if (typeof clipboardData !== 'string') {
-      return false
-    }
-    //convert clipboard data to csv if it's not already
-    if (clipboardData.indexOf('\t') > 0) {
-      // TODO come up with a better heuristic
-      clipboardDataNormalized = TSVToCSV(clipboardData)
-    } else {
-      clipboardDataNormalized = clipboardData
-    }
-    pastes.push(clipboardDataNormalized)
-    setPastes(pastes)
-    // got 2 pastes, ready for business
-    // but how does the user know that?
-    if (pastes.length >= 2) {
-      props.setSheetNames(['clipboard1', 'clipboard2'])
-      let promises = _.map(pastes, (p, i) => {
-        return new Promise((resolve, reject) => {
-          // HACKY ALERT: I have to do the set timeout. If it's just resolve() with no setTimeout
-          // an error is encountered when running the sql
-          // WHY?
-          setTimeout(() => resolve(1), 1)
-        })
-          .then((result) => {
-            console.log('csv text', result, p)
-            return props.loadCsv('clipboard' + (i + 1), p)
-          })
-          .catch((error) => {
-            console.error('Error loading csv from paste', error)
-          })
-      })
-
-      Promise.allSettled(promises)
-        .then((results) => {
-          console.log('results', results)
-          let columns = _.map(results, (r) =>
-            r.status === 'fulfilled'
-              ? (r.value as { columns: string[] }).columns
-              : []
-          )
-
-          let tableNames = _.map(results, (r) =>
-            r.status === 'fulfilled'
-              ? (r.value as { tableName: string[] }).tableName
-              : []
-          ).flat()
-          props.setTableNames(tableNames)
-          props.setColumns(columns)
-          props.setOpen(true)
-        })
-        .catch((error) => {
-          console.error('Error on setting props after paste', error)
-        })
-    }
-  }
-
   const backgroundImage = `url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='18' ry='18' stroke='%23000000FF' stroke-width='4' stroke-dasharray='6%2c 14' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e")`
   const borderRadius = `18px`
 
@@ -127,7 +64,6 @@ function Form(props: FormProps) {
     <div
       className="dragNDropContainer"
       style={{ backgroundImage: backgroundImage, borderRadius: borderRadius }}
-      onPaste={handleOnPaste}
     >
       <div className="box box-1">
         <div>
@@ -146,6 +82,20 @@ function Form(props: FormProps) {
 
   return (
     <form>
+      <PasteZones
+        loadCsv={props.loadCsv}
+        setColumns={props.setColumns}
+        setTableNames={props.setTableNames}
+        setSheetNames={props.setSheetNames}
+        setOpen={props.setOpen}
+      />
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ textAlign: 'center', mb: 1 }}
+      >
+        — or drag & drop CSV files —
+      </Typography>
       <FileUploader
         multiple={true}
         handleChange={handleFileChange}
@@ -172,12 +122,6 @@ function Form(props: FormProps) {
           3. Compare - view discrepancies and similarities
         </Typography>
       </div>
-      {/*<p>
-        {files
-          ? `File names: ${_.map(files, (f: { name }) => f.name).join()}`
-          : "no files uploaded yet"}
-      </p>
-        */}
     </form>
   )
 }
