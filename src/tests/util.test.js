@@ -100,6 +100,10 @@ describe('sanitizeSqlIdentifier', () => {
     expect(sanitizeSqlIdentifier('2026-report')).toBe('_2026_report');
   });
 
+  it('prefixes purely numeric names', () => {
+    expect(sanitizeSqlIdentifier('123')).toBe('_123');
+  });
+
   it('falls back to "table" when name becomes empty after sanitization', () => {
     expect(sanitizeSqlIdentifier('')).toBe('table');
   });
