@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { FileUploader } from 'react-drag-drop-files'
 import './styles.scss'
 import PasteZones from './PasteZones'
+import { sanitizeSqlIdentifier } from './util'
 
 interface FormProps {
   loadCsv: (name: string, csvText: string) => {}
@@ -24,7 +25,7 @@ function Form(props: FormProps) {
 
     let promises = _.map(files, (f: File) => {
       let displayFileName = f.name.split('.')[0]
-      let tableName = displayFileName.replace(/[^0-9A-Za-z _-]/g, '_')
+      let tableName = sanitizeSqlIdentifier(displayFileName)
 
       return f
         .text()

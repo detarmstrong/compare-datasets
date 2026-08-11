@@ -15,7 +15,7 @@ import DragAndDropForm from './DragNDropForm'
 import VennFilterButtons from './VennFilterButtons'
 import { Filter, KeyDescription, KeyDescriptionArray } from './types'
 import { KeySelection } from './KeySelection'
-import { makeStringsUnique } from './util'
+import { makeStringsUnique, sanitizeSqlIdentifier } from './util'
 
 const Logo = () => (
   <Box sx={{ position: 'absolute', top: 10, left: 10 }}>
@@ -333,7 +333,7 @@ export default function App() {
     columns = makeStringsUnique(columns)
 
     // generate unique table name
-    let tableName = name
+    let tableName = sanitizeSqlIdentifier(name)
     let columnsDDL = _.map(columns, (col) => `"${col}" varchar`)
 
     // create table

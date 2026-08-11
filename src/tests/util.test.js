@@ -1,4 +1,9 @@
-import { makeStringsUnique, normalizePastedTabular, summarizeCsv } from '../util';
+import {
+  makeStringsUnique,
+  normalizePastedTabular,
+  sanitizeSqlIdentifier,
+  summarizeCsv,
+} from '../util';
 
 describe('makeStringsUnique', () => {
   it('should make duplicate strings unique by appending numbers', () => {
@@ -83,5 +88,23 @@ describe('summarizeCsv', () => {
   it('returns zeros for empty input', () => {
     expect(summarizeCsv('')).toEqual({ rows: 0, cols: 0 });
     expect(summarizeCsv('   ')).toEqual({ rows: 0, cols: 0 });
+  });
+});
+
+describe('sanitizeSqlIdentifier', () => {
+  it('replaces hyphens and other non-identifier characters with underscores', () => {
+    expect(sanitizeSqlIdentifier('my-file.name')).toBe('my_file_name');
+  });
+
+  it('prefixes names that begin with a digit', () => {
+    expect(sanitizeSqlIdentifier('2026-report')).toBe('_2026_report');
+  });
+
+  it('prefixes purely numeric names', () => {
+    expect(sanitizeSqlIdentifier('123')).toBe('_123');
+  });
+
+  it('falls back to "table" when name becomes empty after sanitization', () => {
+    expect(sanitizeSqlIdentifier('')).toBe('table');
   });
 });

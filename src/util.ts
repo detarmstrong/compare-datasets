@@ -47,6 +47,12 @@ export function normalizePastedTabular(rawText: unknown): string | null {
   return trimmed.includes('\t') ? TSVToCSV(trimmed) : trimmed
 }
 
+export function sanitizeSqlIdentifier(name: string): string {
+  const sanitized = name.replace(/[^0-9A-Za-z_]/g, '_')
+  const nonEmpty = sanitized.length > 0 ? sanitized : 'table'
+  return /^[0-9]/.test(nonEmpty) ? `_${nonEmpty}` : nonEmpty
+}
+
 export function TSVToCSV(TSVText: string): string {
   // Split the input text into rows based on newline characters
   const rows = TSVText.trim().split('\n');
